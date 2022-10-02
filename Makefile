@@ -1,6 +1,6 @@
 SHELL=/bin/bash
 
-# compilers
+# compiler and linker flags
 CXX = g++
 LD = g++
 OPTIM = -O3
@@ -23,6 +23,10 @@ OBJDIR = build
 DEPDIR = $(OBJDIR)
 SRCS = $(wildcard $(SRCDIR)/*.cc)
 OBJS = $(subst $(SRCDIR)/,$(OBJDIR)/,$(SRCS:.cc=.o))
+
+# includes
+INCLUDES = -I./include
+TEST_INCLUDES = -I/usr/local/include
 
 # main
 MAINDIR = main
@@ -51,10 +55,6 @@ GCOV_DEPDIR = $(GCOV_OBJDIR)
 GCOV_TARGET_OBJS = $(subst $(SRCDIR)/,$(GCOV_OBJDIR)/,$(SRCS:.cc=.o))
 GCOV_TEST_OBJS = $(subst $(TEST_SRCDIR)/,$(GCOV_OBJDIR)/,$(TEST_SRCS:.cc=.o))
 GCOV_DEPS = $(GCOV_TARGET_OBJS:.o=.d) $(GCOV_TEST_OBJS:.o=.d)
-
-# includes
-INCLUDES = -I./include
-TEST_INCLUDES = -I/usr/local/include
 
 # lcov
 LCOVDIR = lcov
