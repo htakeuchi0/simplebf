@@ -106,7 +106,7 @@ public:
    * double hashing 向けのハッシュ値を返す． 
    *
    * 0以上 NumBits() 未満の値を返す．<br>
-   * より具体的には，std::hash によるハッシュ値を返す．
+   * より具体的には，std::hash によるハッシュ値を NumBits() で割った余りを返す．
    *
    * @param[in] entry ハッシュ値を計算したい要素
    * @return ハッシュ値
@@ -120,11 +120,11 @@ public:
    * double hashing 向けのハッシュ値を返す．
    *
    * 1以上 NumBits() 未満であって， NumBits() と互いに素な値を返す．<br>
-   * NumBits() は2べきなので，Firsthash とは異なるハッシュ関数による値を
+   * NumBits() は2べきなので，FirstHash() とは異なるハッシュ関数による値を
    * 2倍して1を足したものを返す．
    * 
    * より具体的には，入力値を文字列化したものの djb2 によるハッシュ値を計算し，<br>
-   * その値を2倍して1を足したものを， NumBits() で割った値を返す．
+   * その値を2倍して1を足したものを， NumBits() で割った余りを返す．
    *
    * @param[in] entry ハッシュ値を計算したい要素
    * @return ハッシュ値
@@ -173,14 +173,15 @@ public:
    * フィルタ用配列サイズのビット数の底2による対数値を設定する．
    *
    * 指定値が設定できたら true を返す．<br>
-   * 指定値が63以上の場合は62を設定し，false を返す．
+   * フィルタ用配列は1GB程度を限度とし，指定値が34以上の場合は33を設定し，false を返す．<br>
    *
    * @param[in] log2_num_bits フィルタ用配列サイズのビット数の底2による対数値
    * @return 指定値が設定できたら true
    */
   bool SetLog2NumBits(std::size_t log2_num_bits) {
-    if (log2_num_bits > 62) {
-      filter_.resize(1ull << 62);
+    if (log2_num_bits > 33) {
+      // 2^33 [bits] = 2^3 * 2^30 [bits] = 8 * (2^10)^3 [bits] = 1 [GB]
+      filter_.resize(1ull << 33);
       parameter_error_flags_ |= kHasLog2NumBitsError;
       return false;
     }
@@ -282,6 +283,8 @@ private:
   /**
    * ファイル用配列サイズのビット数で割った余りを返す．
    *
+   * 配列サイズは2べきである前提とする．
+   *
    * @param[in] x 値
    * @return 入力値をファイル用配列サイズのビット数で割った余り
    */
@@ -332,7 +335,7 @@ private:
  * 2倍して1を足したものを返す．
  * 
  * より具体的には，入力値の djb2 によるハッシュ値を計算し，<br>
- * その値を2倍して1を足したものを， NumBits() で割った値を返す．
+ * その値を2倍して1を足したものを， NumBits() で割った余りを返す．
  *
  * @param[in] entry ハッシュ値を計算したい要素
  * @return ハッシュ値
