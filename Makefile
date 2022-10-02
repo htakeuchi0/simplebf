@@ -6,9 +6,11 @@ LD = g++
 OPTIM = -O3
 CXXFLAGS = -std=c++17 -s -Wall
 DEPFLAGS = -MT $@ -MMD -MP -MF
-TEST_LDFLAGS = -lgtest -lgtest_main -lpthread
 GCOVFLAGS = -fprofile-arcs -ftest-coverage -fno-inline -fno-inline-small-functions -fno-default-inline
+LDFLAGS = 
+TEST_LDFLAGS = -lgtest -lgtest_main -lpthread
 
+# targets
 MAIN_TARGET = simplebf
 LIB_TARGET = libsimplebf.so.0.0.1
 TEST_TARGET = test_simplebf
@@ -40,15 +42,15 @@ TEST_OBJDIR = build/test
 TEST_DEPDIR = $(TEST_OBJDIR)
 TEST_SRCS = $(wildcard $(TEST_SRCDIR)/*.cc)
 TEST_TARGET_OBJS = $(subst $(SRCDIR)/,$(TEST_OBJDIR)/,$(SRCS:.cc=.o))
-TEST_OBJS = $(subst $(TEST_SRCDIR)/,$(TEST_OBJDIR)/,$(TEST_SRCS:.cc=.o))
-TEST_DEPS = $(TEST_TARGET_OBJS:.o=.d) $(TEST_OBJS:.o=.d)
+TEST_TEST_OBJS = $(subst $(TEST_SRCDIR)/,$(TEST_OBJDIR)/,$(TEST_SRCS:.cc=.o))
+TEST_DEPS = $(TEST_TARGET_OBJS:.o=.d) $(TEST_TEST_OBJS:.o=.d)
 
 # gcov
 GCOV_OBJDIR = build/gcov
 GCOV_DEPDIR = $(GCOV_OBJDIR)
-GCOV_OBJS = $(subst $(SRCDIR)/,$(GCOV_OBJDIR)/,$(SRCS:.cc=.o))
-GCOV_TESTOBJS = $(subst $(TEST_SRCDIR)/,$(GCOV_OBJDIR)/,$(TEST_SRCS:.cc=.o))
-GCOV_DEPS = $(GCOV_OBJS:.o=.d) $(GCOV_TESTOBJS:.o=.d)
+GCOV_TARGET_OBJS = $(subst $(SRCDIR)/,$(GCOV_OBJDIR)/,$(SRCS:.cc=.o))
+GCOV_TEST_OBJS = $(subst $(TEST_SRCDIR)/,$(GCOV_OBJDIR)/,$(TEST_SRCS:.cc=.o))
+GCOV_DEPS = $(GCOV_TARGET_OBJS:.o=.d) $(GCOV_TEST_OBJS:.o=.d)
 
 # includes
 INCLUDES = -I./include
@@ -63,7 +65,7 @@ DOXYGEN = doxygen
 DOCDIR = doxygen
 INDEXPATH = $(DOXYGEN)/html/index.html
 
-.PHONY: all build install uninstall clean test gcov lcov docs
+.PHONY: all build install uninstall lib test gcov lcov docs clean 
 
 build: $(MAIN_TARGET)
 
@@ -82,20 +84,42 @@ uninstall:
 
 test: $(TEST_TARGET)
 
-all: build lib lcov docs
+lcov: $(LCOV_TARGET)
+
+docs:
+	$(DOXYGEN)
+	@echo $(INDEXPATH)
+
+all: build lib test lcov docs
+
+$(TEST_TARGET): LDFLAGS += $(TEST_LDFLAGS)
+$(GCOV_TARGET): LDFLAGS += $(TEST_LDFLAGS)
 
 $(MAIN_TARGET): $(MAIN_OBJS) $(OBJS)
 	$(LD) -o $@ $^ $(LDFLAGS)
 
-$(TEST_TARGET): $(TEST_OBJS) $(TEST_TARGET_OBJS)
-	$(LD) -o $@ $^ $(TEST_LDFLAGS) 
+$(TEST_TARGET): $(TEST_TEST_OBJS) $(TEST_TARGET_OBJS)
+	$(LD) -o $@ $^ $(LDFLAGS) 
 
-$(GCOV_TARGET): $(GCOV_TESTOBJS) $(GCOV_OBJS)
-	$(LD) $(GCOVFLAGS) -o $(TEST_TARGET) $^ $(TEST_LDFLAGS) 
+$(GCOV_TARGET): $(GCOV_TEST_OBJS) $(GCOV_TARGET_OBJS)
+	$(LD) $(GCOVFLAGS) -o $(TEST_TARGET) $^ $(LDFLAGS) 
 	./$(TEST_TARGET)
 
 $(LIB_TARGET): $(LIB_OBJS)
 	$(LD) -shared -o $(LIB_OBJDIR)/$@ $^ $(LDFLAGS)
+
+$(LCOV_TARGET): $(GCOV_TARGET)
+	lcov --capture --directory . --output-file $(COVERAGE)
+	lcov --remove $(COVERAGE) **include/c++/** --output-file $(COVERAGE)
+	lcov --remove $(COVERAGE) **bits** --output-file $(COVERAGE)
+	lcov --remove $(COVERAGE) **gtest*.h --output-file $(COVERAGE)
+	lcov --remove $(COVERAGE) **gtest*.cc --output-file $(COVERAGE)
+	genhtml $(COVERAGE) --output-directory $(LCOVDIR)
+	@rm -f *.gcno
+	@rm -f *.gcda
+	@rm -f $(COVERAGE)
+	@echo -n -e ""
+	@echo $(LCOVDIR)/index.html
 
 $(MAIN_TARGET): DEPFLAGS += $(DEPDIR)/$*.d
 $(TEST_TARGET): DEPFLAGS += $(TEST_DEPDIR)/$*.d
@@ -125,7 +149,7 @@ $(LIB_OBJS): $(LIB_OBJDIR)/%.o: $(SRCDIR)/%.cc $(LIB_OBJDIR)/%.d
 
 $(LIB_DEPS):
 
-$(TEST_OBJS): $(TEST_OBJDIR)/%.o: $(TEST_SRCDIR)/%.cc $(TEST_OBJDIR)/%.d
+$(TEST_TEST_OBJS): $(TEST_OBJDIR)/%.o: $(TEST_SRCDIR)/%.cc $(TEST_OBJDIR)/%.d
 	@mkdir -p $(dir $(TEST_TARGET_OBJS))
 	$(CXX) $(CXXFLAGS) $(OPTIM) $(INCLUDES) -c $< -o $@
 
@@ -135,32 +159,15 @@ $(TEST_TARGET_OBJS): $(TEST_OBJDIR)/%.o: $(SRCDIR)/%.cc $(TEST_OBJDIR)/%.d
 
 $(TEST_DEPS):
 
-$(GCOV_TESTOBJS): $(GCOV_OBJDIR)/%.o: $(TEST_SRCDIR)/%.cc $(GCOV_OBJDIR)/%.d
-	@mkdir -p $(dir $(GCOV_OBJS))
+$(GCOV_TEST_OBJS): $(GCOV_OBJDIR)/%.o: $(TEST_SRCDIR)/%.cc $(GCOV_OBJDIR)/%.d
+	@mkdir -p $(dir $(GCOV_TARGET_OBJS))
 	$(CXX) $(CXXFLAGS) $(OPTIM) $(INCLUDES) -c $< -o $@
 
-$(GCOV_OBJS): $(GCOV_OBJDIR)/%.o: $(SRCDIR)/%.cc $(GCOV_OBJDIR)/%.d
-	@mkdir -p $(dir $(GCOV_OBJS))
+$(GCOV_TARGET_OBJS): $(GCOV_OBJDIR)/%.o: $(SRCDIR)/%.cc $(GCOV_OBJDIR)/%.d
+	@mkdir -p $(dir $(GCOV_TARGET_OBJS))
 	$(CXX) $(CXXFLAGS) $(OPTIM) $(INCLUDES) -c $< -o $@
 
 $(GCOV_DEPS):
-
-$(LCOV_TARGET): $(GCOV_TARGET)
-	lcov --capture --directory . --output-file $(COVERAGE)
-	lcov --remove $(COVERAGE) **include/c++/** --output-file $(COVERAGE)
-	lcov --remove $(COVERAGE) **bits** --output-file $(COVERAGE)
-	lcov --remove $(COVERAGE) **gtest*.h --output-file $(COVERAGE)
-	lcov --remove $(COVERAGE) **gtest*.cc --output-file $(COVERAGE)
-	genhtml $(COVERAGE) --output-directory $(LCOVDIR)
-	@rm -f *.gcno
-	@rm -f *.gcda
-	@rm -f $(COVERAGE)
-	@echo -n -e ""
-	@echo $(LCOVDIR)/index.html
-
-docs:
-	$(DOXYGEN)
-	@echo $(INDEXPATH)
 
 clean:
 	@rm -f $(MAIN_TARGET)
