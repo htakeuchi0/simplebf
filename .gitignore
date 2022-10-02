@@ -33,3 +33,7 @@
 
 # Others
 doxygen
+build
+lcov
+simplebf
+test_simplebf
