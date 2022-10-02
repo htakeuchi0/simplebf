@@ -26,7 +26,16 @@ namespace sbf {
  * * 含まれているのに含まれていないと判定される誤り (false negative) は発生しない
  * * 含まれていないのに含まれていると判定される誤り (false positive) が発生することがある
  *
- * @tparam T 要素の型
+ * @tparam T 要素の型．ただし，以下の型のみが認められている．
+ *     * int
+ *     * unsigned int
+ *     * unsigned long
+ *     * long long
+ *     * unsigned long long
+ *     * float
+ *     * double
+ *     * long double
+ *     * std::string
  */
 template <class T>
 class BloomFilter {
@@ -120,7 +129,7 @@ public:
    * double hashing 向けのハッシュ値を返す．
    *
    * 1以上 NumBits() 未満であって， NumBits() と互いに素な値を返す．<br>
-   * NumBits() は2べきなので，FirstHash() とは異なるハッシュ関数による値を
+   * NumBits() は2べきなので， FirstHash() とは異なるハッシュ関数による値を
    * 2倍して1を足したものを返す．
    * 
    * より具体的には，入力値を文字列化したものの djb2 によるハッシュ値を計算し，<br>
@@ -330,8 +339,8 @@ private:
 /**
  * double hashing 向けのハッシュ値を返す（FirstHashとは異なるハッシュ値）．
  *
- * 1以上 NumBits() 未満であって，NumBits() と互いに素な値を返す．<br>
- * NumBits() は2べきなので，Firsthash とは異なるハッシュ関数による値を
+ * 1以上 NumBits() 未満であって， NumBits() と互いに素な値を返す．<br>
+ * NumBits() は2べきなので， FirstHash() とは異なるハッシュ関数による値を
  * 2倍して1を足したものを返す．
  * 
  * より具体的には，入力値の djb2 によるハッシュ値を計算し，<br>
