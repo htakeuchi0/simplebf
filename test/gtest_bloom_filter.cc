@@ -251,9 +251,13 @@ TEST_F(BloomFilterTest, ErrorNumBits) {
   using bf_t = sbf::BloomFilter<std::string>;
   try {
     bf_t bf(100);
+
+    // 配列サイズがエラー
     EXPECT_TRUE(bf.HasParameterError());
     auto flags = bf.ParameterErrorFlags();
     EXPECT_TRUE((flags & bf_t::kHasLog2NumBitsError) != 0);
+
+    // エラー手動解除
     bf.ClearParameterError(bf_t::kHasLog2NumBitsError);
     flags = bf.ParameterErrorFlags();
     EXPECT_FALSE(bf.HasParameterError());
@@ -273,23 +277,43 @@ TEST_F(BloomFilterTest, ErrorNumBits) {
 TEST_F(BloomFilterTest, ErrorNumHashes) {
   using bf_t = sbf::BloomFilter<std::string>;
   bf_t bf(2, 0);
+
+  // ハッシュ関数の個数にエラー
   EXPECT_TRUE(bf.HasParameterError());
   auto flags = bf.ParameterErrorFlags();
   EXPECT_TRUE((flags & bf_t::kHasNumHashesError) != 0);
+
+  // エラーフラグをクリア
   bf.ClearParameterError(bf_t::kHasNumHashesError);
   EXPECT_FALSE(bf.HasParameterError());
   flags = bf.ParameterErrorFlags();
   EXPECT_TRUE((flags & bf_t::kHasNumHashesError) == 0);
+
+  // ハッシュ関数の個数を手動で不正値に変更
   bf.SetNumHashes(0);
+
+  // エラー
+  EXPECT_TRUE(bf.HasParameterError());
   flags = bf.ParameterErrorFlags();
   EXPECT_TRUE((flags & bf_t::kHasNumHashesError) != 0);
+
+  // ハッシュ関数の個数を手動で訂正
   bf.SetNumHashes(2);
+
+  // エラー解除
   EXPECT_FALSE(bf.HasParameterError());
   flags = bf.ParameterErrorFlags();
   EXPECT_TRUE((flags & bf_t::kHasNumHashesError) == 0);
+
+  // ハッシュ関数の個数を手動で不正値に変更
   bf.SetNumHashes(0);
+
+  // エラー
+  EXPECT_TRUE(bf.HasParameterError());
   flags = bf.ParameterErrorFlags();
   EXPECT_TRUE((flags & bf_t::kHasNumHashesError) != 0);
+
+  // エラーフラグをすべてクリア
   bf.ClearParameterError();
   EXPECT_FALSE(bf.HasParameterError());
   flags = bf.ParameterErrorFlags();
@@ -302,6 +326,8 @@ TEST_F(BloomFilterTest, ErrorNumHashes) {
 TEST_F(BloomFilterTest, OptimalNumHashes) {
   using bf_t = sbf::BloomFilter<std::string>;
   bf_t bf(2);
+
+  // 最適値を設定できなくてもエラーフラグは残らない
   EXPECT_TRUE(bf.SetOptimalNumHashes(2));
   EXPECT_FALSE(bf.HasParameterError());
   EXPECT_FALSE(bf.SetOptimalNumHashes(8192));
