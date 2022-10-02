@@ -84,7 +84,18 @@ uninstall:
 
 test: $(TEST_TARGET)
 
-lcov: $(LCOV_TARGET)
+$(LCOV_TARGET): $(GCOV_TARGET)
+	lcov --capture --directory . --output-file $(COVERAGE)
+	lcov --remove $(COVERAGE) **include/c++/** --output-file $(COVERAGE)
+	lcov --remove $(COVERAGE) **bits** --output-file $(COVERAGE)
+	lcov --remove $(COVERAGE) **gtest*.h --output-file $(COVERAGE)
+	lcov --remove $(COVERAGE) **gtest*.cc --output-file $(COVERAGE)
+	genhtml $(COVERAGE) --output-directory $(LCOVDIR)
+	@rm -f *.gcno
+	@rm -f *.gcda
+	@rm -f $(COVERAGE)
+	@echo -n -e ""
+	@echo $(LCOVDIR)/index.html
 
 docs:
 	$(DOXYGEN)
@@ -107,19 +118,6 @@ $(GCOV_TARGET): $(GCOV_TEST_OBJS) $(GCOV_TARGET_OBJS)
 
 $(LIB_TARGET): $(LIB_OBJS)
 	$(LD) -shared -o $(LIB_OBJDIR)/$@ $^ $(LDFLAGS)
-
-$(LCOV_TARGET): $(GCOV_TARGET)
-	lcov --capture --directory . --output-file $(COVERAGE)
-	lcov --remove $(COVERAGE) **include/c++/** --output-file $(COVERAGE)
-	lcov --remove $(COVERAGE) **bits** --output-file $(COVERAGE)
-	lcov --remove $(COVERAGE) **gtest*.h --output-file $(COVERAGE)
-	lcov --remove $(COVERAGE) **gtest*.cc --output-file $(COVERAGE)
-	genhtml $(COVERAGE) --output-directory $(LCOVDIR)
-	@rm -f *.gcno
-	@rm -f *.gcda
-	@rm -f $(COVERAGE)
-	@echo -n -e ""
-	@echo $(LCOVDIR)/index.html
 
 $(MAIN_TARGET): DEPFLAGS += $(DEPDIR)/$*.d
 $(TEST_TARGET): DEPFLAGS += $(TEST_DEPDIR)/$*.d
